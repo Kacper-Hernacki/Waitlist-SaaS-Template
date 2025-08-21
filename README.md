@@ -256,3 +256,4 @@ For issues and questions:
 ---
 
 Built with ❤️ using Next.js 15, TypeScript, and Tailwind CSS
+# Waitlist-SaaS-Template
