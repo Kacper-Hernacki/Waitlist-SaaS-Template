@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics, CookieConsent } from "../components/analytics";
+import { ToastProvider } from "../components/toast";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,25 +25,25 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://yourdomain.com"),
   title: {
-    default: "Your SaaS Name | Brief Value Proposition",
-    template: "%s | Your SaaS Name",
+    default: "Coming Soon | Revolutionary Platform for Modern Teams",
+    template: "%s | YourLogo",
   },
-  description: "Describe your SaaS value proposition in 150-160 characters. Focus on benefits and target audience.",
-  keywords: ["saas", "productivity", "business", "tool", "software"],
-  authors: [{ name: "Your Company Name" }],
-  creator: "Your Company Name",
-  publisher: "Your Company Name",
+  description: "Join the waitlist for the revolutionary platform that will transform how you work. Be among the first to experience the future of productivity.",
+  keywords: ["waitlist", "coming soon", "productivity", "platform", "early access", "beta", "launch"],
+  authors: [{ name: "YourLogo Team" }],
+  creator: "YourLogo",
+  publisher: "YourLogo",
   openGraph: {
-    title: "Your SaaS Name | Brief Value Proposition",
-    description: "Describe your SaaS value proposition in 150-160 characters. Focus on benefits and target audience.",
+    title: "Coming Soon | Revolutionary Platform for Modern Teams",
+    description: "Join the waitlist for the revolutionary platform that will transform how you work. Be among the first to experience the future of productivity.",
     url: "https://yourdomain.com",
-    siteName: "Your SaaS Name",
+    siteName: "YourLogo",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Your SaaS Name - Brief description",
+        alt: "YourLogo - Revolutionary Platform Coming Soon",
       },
     ],
     locale: "en_US",
@@ -49,8 +51,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Your SaaS Name | Brief Value Proposition",
-    description: "Describe your SaaS value proposition in 150-160 characters. Focus on benefits and target audience.",
+    title: "Coming Soon | Revolutionary Platform for Modern Teams",
+    description: "Join the waitlist for the revolutionary platform that will transform how you work. Be among the first to experience the future of productivity.",
     images: ["/og-image.jpg"],
     creator: "@yourtwitterhandle",
   },
@@ -96,8 +98,8 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              name: "Your SaaS Name",
-              description: "Describe your SaaS value proposition in 150-160 characters. Focus on benefits and target audience.",
+              name: "YourLogo",
+              description: "Join the waitlist for the revolutionary platform that will transform how you work. Be among the first to experience the future of productivity.",
               url: "https://yourdomain.com",
               logo: "https://yourdomain.com/logo.png",
               sameAs: [
@@ -107,7 +109,11 @@ export default function RootLayout({
             }),
           }}
         />
-        {children}
+        <ToastProvider>
+          {children}
+          <Analytics />
+          <CookieConsent />
+        </ToastProvider>
       </body>
     </html>
   );

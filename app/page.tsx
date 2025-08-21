@@ -1,268 +1,341 @@
+"use client";
+
+import { useForm } from "react-hook-form";
+import { useState, useEffect } from "react";
+import { waitlistEvents } from "../components/analytics";
+import { useToast, toast } from "../components/toast";
+import { validateWaitlistForm } from "../lib/validation";
+import { WaitlistFormData, WaitlistApiResponse, ApiErrorResponse, WaitlistErrorCodes } from "../types/waitlist";
+
 export default function Home() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const { addToast } = useToast();
+
+  // Track page view
+  useEffect(() => {
+    waitlistEvents.pageView('waitlist_home');
+  }, []);
+
+  // React Hook Form setup with validation
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<WaitlistFormData>({
+    defaultValues: {
+      agreeToEmails: true, // Default checkbox to checked
+    },
+  });
+
+  // Form submission handler
+  const onSubmit = async (data: WaitlistFormData) => {
+    // Clear previous errors
+    setApiError(null);
+    setIsSubmitting(true);
+    
+    // Client-side validation
+    const validation = validateWaitlistForm(data);
+    if (!validation.success) {
+      const firstError = Object.values(validation.errors)[0];
+      addToast(toast.error('Validation Error', firstError));
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Track signup started
+    waitlistEvents.signupStarted();
+    
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          agreeToEmails: data.agreeToEmails
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        const errorResult = result as ApiErrorResponse;
+        
+        // Handle specific error codes
+        let errorMessage = errorResult.error || 'Failed to join waitlist';
+        let toastTitle = 'Signup Failed';
+        
+        switch (errorResult.code) {
+          case WaitlistErrorCodes.EMAIL_ALREADY_EXISTS:
+            errorMessage = 'You&apos;re already on our waitlist! Check your email for confirmation.';
+            toastTitle = 'Already Registered';
+            break;
+          case WaitlistErrorCodes.RATE_LIMIT_EXCEEDED:
+            errorMessage = 'Too many attempts. Please wait a few minutes before trying again.';
+            toastTitle = 'Rate Limit Exceeded';
+            break;
+          case WaitlistErrorCodes.TIMEOUT_ERROR:
+            errorMessage = 'Request timed out. Please check your connection and try again.';
+            toastTitle = 'Connection Timeout';
+            break;
+          case WaitlistErrorCodes.VALIDATION_ERROR:
+            errorMessage = 'Please check your email address and try again.';
+            toastTitle = 'Invalid Email';
+            break;
+        }
+
+        setApiError(errorMessage);
+        addToast(toast.error(toastTitle, errorMessage, { duration: 8000 }));
+        
+        // Track error
+        waitlistEvents.signupError(errorResult.code || 'unknown_error');
+        
+        return;
+      }
+
+      // Success
+      const successResult = result as WaitlistApiResponse;
+      
+      // Track successful signup
+      waitlistEvents.signupCompleted(data.email);
+      
+      // Show success message
+      addToast(toast.success(
+        'Welcome to the waitlist!', 
+        successResult.message || 'Please check your email to confirm your subscription.',
+        { duration: 10000 }
+      ));
+      
+      setIsSubmitted(true);
+      reset();
+      
+      // Clear success state after 30 seconds
+      setTimeout(() => {
+        setIsSubmitted(false);
+      }, 30000);
+
+    } catch (error) {
+      console.error('Network error submitting form:', error);
+      
+      const errorMessage = 'Network error. Please check your connection and try again.';
+      setApiError(errorMessage);
+      addToast(toast.error('Connection Error', errorMessage));
+      
+      // Track network error
+      waitlistEvents.signupError('network_error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* NAVIGATION - Replace with your navigation component */}
-      <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col">
+      {/* NAVIGATION BAR - Customize with your branding */}
+      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-700/60 sticky top-0 z-50" role="navigation" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo - Replace with your logo */}
+            {/* LOGO PLACEHOLDER - Replace with your actual logo */}
             <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                Your SaaS Logo
-              </h1>
-            </div>
-            
-            {/* Navigation Links - Customize as needed */}
-            <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-4">
-                <a href="#features" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 text-sm font-medium">
-                  Features
-                </a>
-                <a href="#pricing" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 text-sm font-medium">
-                  Pricing
-                </a>
-                <a href="#about" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 text-sm font-medium">
-                  About
-                </a>
+              <div className="flex items-center space-x-2">
+                {/* Logo icon placeholder - Replace with your logo/icon */}
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">L</span>
+                </div>
+                {/* Company name - Replace with your company name */}
+                <span className="text-xl font-semibold text-slate-900 dark:text-white">
+                  YourLogo
+                </span>
               </div>
             </div>
 
-            {/* CTA Buttons - Customize as needed */}
-            <div className="flex items-center space-x-4">
-              <button className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 text-sm font-medium">
-                Login
-              </button>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                Get Started
-              </button>
+            {/* OPTIONAL: Add navigation links if needed for future pages */}
+            <div className="hidden md:flex items-center space-x-1">
+              {/* Uncomment and customize these links as needed
+              <a href="#features" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                Features
+              </a>
+              <a href="#pricing" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                Pricing
+              </a>
+              */}
             </div>
           </div>
         </div>
       </nav>
 
-      {/* HERO SECTION - Replace with your hero content */}
-      <header className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-            {/* Main headline - Replace with your value proposition */}
-            Your SaaS Solves This Problem
-          </h1>
-          
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-            {/* Subheading - Explain how you solve the problem and for whom */}
-            Describe how your SaaS helps your target audience achieve their goals faster, easier, or better. Keep it clear and benefit-focused.
-          </p>
-
-          {/* CTA Buttons - Customize as needed */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-colors shadow-lg">
-              Start Free Trial
-            </button>
-            <button className="border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 px-8 py-3 rounded-lg text-lg font-semibold transition-colors">
-              Watch Demo
-            </button>
-          </div>
-
-          {/* Social Proof - Add your metrics/testimonials */}
-          <div className="mt-12 text-sm text-gray-500 dark:text-gray-400">
-            Trusted by <span className="font-semibold">10,000+</span> users worldwide
-          </div>
-        </div>
-      </header>
-
-      {/* FEATURES SECTION - Replace with your features */}
-      <section id="features" className="py-20 bg-white dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Why Choose Our SaaS?
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Highlight your key features and benefits that differentiate you from competitors.
+      {/* HERO SECTION WITH WAITLIST SIGNUP */}
+      <main className="flex-1 flex items-center">
+        <section className="w-full py-16 px-4 sm:px-6 lg:px-8 sm:py-20 lg:py-24">
+          <div className="max-w-4xl mx-auto text-center">
+            {/* MAIN HEADLINE - Replace with your value proposition */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-slate-900 dark:text-white mb-6">
+              {/* Primary headline - Make it compelling and clear */}
+              <span className="block">Something Amazing</span>
+              <span className="block bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                is Coming Soon
+              </span>
+            </h1>
+            
+            {/* SUBHEADING - Explain your value proposition */}
+            <p className="text-xl sm:text-2xl text-slate-600 dark:text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed">
+              {/* Replace with your product description - Focus on benefits and target audience */}
+              Be the first to experience the revolutionary platform that will transform how you work. 
+              Join thousands of early adopters waiting for launch.
             </p>
-          </div>
 
-          {/* Feature Grid - Customize with your features */}
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mx-auto mb-4">
-                {/* Replace with your icon */}
-                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Fast & Reliable
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Describe this feature and how it benefits your users. Focus on outcomes.
-              </p>
+            {/* WAITLIST SIGNUP FORM */}
+            <div className="max-w-md mx-auto">
+              {!isSubmitted ? (
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  {/* EMAIL INPUT FIELD */}
+                  <div className="relative">
+                    <input
+                      type="email"
+                      placeholder="Enter your email address"
+                      disabled={isSubmitting || isSubmitted}
+                      className={`w-full px-4 py-4 text-lg bg-white dark:bg-slate-800 border-2 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        errors.email || apiError
+                          ? 'border-red-500 dark:border-red-400' 
+                          : 'border-slate-300 dark:border-slate-600'
+                      }`}
+                      {...register("email", {
+                        required: "Email address is required",
+                        pattern: {
+                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                          message: "Please enter a valid email address"
+                        }
+                      })}
+                    />
+                    {/* EMAIL VALIDATION ERROR */}
+                    {(errors.email || apiError) && (
+                      <p className="mt-2 text-sm text-red-600 dark:text-red-400 text-left">
+                        {errors.email?.message || apiError}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* AGREEMENT CHECKBOX */}
+                  <div className="flex items-start space-x-3 text-left">
+                    <input
+                      type="checkbox"
+                      id="agreeToEmails"
+                      disabled={isSubmitting || isSubmitted}
+                      className="mt-1 w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500 dark:focus:ring-blue-400 dark:bg-slate-800 dark:border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      {...register("agreeToEmails", {
+                        required: "You must agree to receive emails to join the waitlist"
+                      })}
+                    />
+                    <label htmlFor="agreeToEmails" className="text-sm text-slate-600 dark:text-slate-300">
+                      {/* Customize this text based on your privacy policy and email preferences */}
+                      I agree to receive email updates about product launches, features, and company news. 
+                      You can unsubscribe at any time.
+                    </label>
+                  </div>
+                  {/* CHECKBOX VALIDATION ERROR */}
+                  {errors.agreeToEmails && (
+                    <p className="text-sm text-red-600 dark:text-red-400 text-left">
+                      {errors.agreeToEmails.message}
+                    </p>
+                  )}
+
+                  {/* SUBMIT BUTTON */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-4 px-8 rounded-xl text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Joining Waitlist...
+                      </span>
+                    ) : (
+                      "Join the Waitlist"
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* SUCCESS MESSAGE */
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6">
+                  <div className="flex items-center justify-center w-12 h-12 bg-green-100 dark:bg-green-900/40 rounded-full mx-auto mb-4">
+                    <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-green-800 dark:text-green-300 mb-2">
+                    You&apos;re on the list!
+                  </h3>
+                  <p className="text-green-700 dark:text-green-400">
+                    Thanks for joining our waitlist. We&apos;ll notify you as soon as we launch!
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div className="text-center p-6">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+            {/* SOCIAL PROOF / WAITLIST COUNTER - Optional: Add real numbers */}
+            <div className="mt-12 sm:mt-16 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8 text-slate-500 dark:text-slate-400">
+              <div className="flex items-center space-x-2">
+                <div className="flex -space-x-2">
+                  {/* Avatar placeholders - Replace with real user avatars if available */}
+                  <div className="w-8 h-8 bg-gradient-to-r from-pink-400 to-red-400 rounded-full border-2 border-white dark:border-slate-800"></div>
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full border-2 border-white dark:border-slate-800"></div>
+                  <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-teal-400 rounded-full border-2 border-white dark:border-slate-800"></div>
+                  <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full border-2 border-white dark:border-slate-800"></div>
+                </div>
+                <span className="text-sm font-medium">
+                  {/* Update this number with real waitlist count */}
+                  2,547+ people already joined
+                </span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Easy to Use
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Describe this feature and how it benefits your users. Focus on outcomes.
-              </p>
-            </div>
-
-            <div className="text-center p-6">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+              
+              <div className="hidden sm:block w-px h-6 bg-slate-300 dark:bg-slate-600"></div>
+              
+              <div className="text-sm">
+                {/* Add your launch timeline */}
+                🚀 Launching Q2 2024
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Secure & Private
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Describe this feature and how it benefits your users. Focus on outcomes.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* PRICING SECTION - Replace with your pricing */}
-      <section id="pricing" className="py-20 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              Choose the plan that works best for you.
-            </p>
-          </div>
-
-          {/* Pricing Cards - Customize with your plans */}
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-8 border border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Starter</h3>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                $9<span className="text-lg text-gray-500">/month</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-center text-gray-600 dark:text-gray-300">
-                  <svg className="w-4 h-4 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Feature 1
-                </li>
-                <li className="flex items-center text-gray-600 dark:text-gray-300">
-                  <svg className="w-4 h-4 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Feature 2
-                </li>
-              </ul>
-              <button className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                Get Started
-              </button>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-8 border-2 border-blue-500 relative">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium">Most Popular</span>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Professional</h3>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                $29<span className="text-lg text-gray-500">/month</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-center text-gray-600 dark:text-gray-300">
-                  <svg className="w-4 h-4 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  All Starter features
-                </li>
-                <li className="flex items-center text-gray-600 dark:text-gray-300">
-                  <svg className="w-4 h-4 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Advanced Feature
-                </li>
-              </ul>
-              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
-                Start Free Trial
-              </button>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-8 border border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Enterprise</h3>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                Custom
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-center text-gray-600 dark:text-gray-300">
-                  <svg className="w-4 h-4 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Everything included
-                </li>
-                <li className="flex items-center text-gray-600 dark:text-gray-300">
-                  <svg className="w-4 h-4 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Priority support
-                </li>
-              </ul>
-              <button className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                Contact Sales
-              </button>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      {/* FOOTER - Replace with your footer content */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Your SaaS</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Brief description of your SaaS and its mission.
-              </p>
+      {/* FOOTER - Minimal footer with logo, always at bottom */}
+      <footer className="mt-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200/60 dark:border-slate-700/60" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+          <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+            {/* FOOTER LOGO - Same as header */}
+            <div className="flex items-center space-x-2 order-2 sm:order-1">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xs sm:text-sm">L</span>
+              </div>
+              <span className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+                YourLogo
+              </span>
             </div>
-            
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white">Features</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white">Pricing</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white">API</a></li>
-              </ul>
+
+            {/* FOOTER LINKS - Add as needed */}
+            <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-6 text-sm text-slate-600 dark:text-slate-400 order-1 sm:order-2">
+              {/* Essential links for waitlist compliance */}
+              <div className="flex items-center space-x-4 sm:space-x-6">
+                <a href="/privacy" className="hover:text-slate-900 dark:hover:text-white transition-colors">
+                  Privacy Policy
+                </a>
+                <a href="/cookies" className="hover:text-slate-900 dark:hover:text-white transition-colors">
+                  Cookie Policy
+                </a>
+                <a href="/contact" className="hover:text-slate-900 dark:hover:text-white transition-colors">
+                  Contact
+                </a>
+              </div>
+              <span className="text-center sm:text-left">© {new Date().getFullYear()} YourLogo. All rights reserved.</span>
             </div>
-            
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white">About</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white">Blog</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white">Careers</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Support</h4>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white">Help Center</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white">Contact</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white">Privacy</a></li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-200 dark:border-gray-700 mt-8 pt-8 text-center text-sm text-gray-600 dark:text-gray-300">
-            © {new Date().getFullYear()} Your SaaS Name. All rights reserved.
           </div>
         </div>
       </footer>
