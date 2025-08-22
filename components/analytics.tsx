@@ -23,7 +23,8 @@ export function CookieConsent() {
     // Trigger gtag consent update
     if (typeof window !== 'undefined' && (window as typeof window & { gtag?: (...args: unknown[]) => void }).gtag) {
       (window as typeof window & { gtag: (...args: unknown[]) => void }).gtag('consent', 'update', {
-        'analytics_storage': 'granted'
+        'analytics_storage': 'granted',
+        'ad_storage': 'granted'
       });
     }
   };
@@ -71,20 +72,34 @@ export function CookieConsent() {
   );
 }
 
-// Analytics component that only loads when consent is given
+// Analytics component with consent mode - loads tag but respects privacy
 export function Analytics() {
-  const [hasConsent, setHasConsent] = useState(false);
-
-  useEffect(() => {
-    const consent = localStorage.getItem('cookie-consent');
-    setHasConsent(consent === 'accepted');
-  }, []);
-
-  // Replace 'GA_MEASUREMENT_ID' with your actual Google Analytics Measurement ID
-  // Example: 'G-XXXXXXXXXX'
   const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'GA_MEASUREMENT_ID';
 
-  if (!hasConsent || GA_MEASUREMENT_ID === 'GA_MEASUREMENT_ID') {
+  useEffect(() => {
+    if (GA_MEASUREMENT_ID === 'GA_MEASUREMENT_ID') return;
+
+    // Initialize gtag with denied consent by default
+    if (typeof window !== 'undefined' && (window as typeof window & { gtag?: (...args: unknown[]) => void }).gtag) {
+      const gtag = (window as typeof window & { gtag: (...args: unknown[]) => void }).gtag;
+      
+      // Set default consent mode
+      gtag('consent', 'default', {
+        'analytics_storage': 'denied',
+        'ad_storage': 'denied'
+      });
+
+      // Check existing consent and update if needed
+      const consent = localStorage.getItem('cookie-consent');
+      if (consent === 'accepted') {
+        gtag('consent', 'update', {
+          'analytics_storage': 'granted'
+        });
+      }
+    }
+  }, [GA_MEASUREMENT_ID]);
+
+  if (GA_MEASUREMENT_ID === 'GA_MEASUREMENT_ID') {
     return null;
   }
 
