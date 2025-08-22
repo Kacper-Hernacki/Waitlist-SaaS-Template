@@ -114,9 +114,9 @@ export default function Home() {
       // Show success message
       addToast(
         toast.success(
-          "Welcome to the waitlist!",
+          "Check your email!",
           successResult.message ||
-            "Please check your email to confirm your subscription.",
+            "We've sent you a confirmation email. Please click the link to join our waitlist.",
           { duration: 10000 }
         )
       );
@@ -316,11 +316,10 @@ export default function Home() {
                     </svg>
                   </div>
                   <h3 className="text-lg font-semibold text-green-800 dark:text-green-300 mb-2">
-                    You&apos;re on the list!
+                    Check your email!
                   </h3>
                   <p className="text-green-700 dark:text-green-400">
-                    Thanks for joining our waitlist. We&apos;ll notify you as
-                    soon as we launch!
+                    We&apos;ve sent you a confirmation email. Please click the link to complete your waitlist registration.
                   </p>
                 </div>
               )}
