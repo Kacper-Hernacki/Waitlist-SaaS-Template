@@ -70,7 +70,7 @@ function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-md z-50 space-y-4">
+    <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-lg z-50 space-y-4">
       {toasts.map(toast => (
         <Toast key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
       ))}
