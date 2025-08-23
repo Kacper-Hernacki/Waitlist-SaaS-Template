@@ -8,6 +8,7 @@ export interface WaitlistFormData {
 export interface N8nWebhookRequest {
   email: string;
   product: string; // Product name - customize this for your product
+  isAgreedToReceiveMails: boolean; // User consent for email communications
 }
 
 export interface N8nWebhookResponse {

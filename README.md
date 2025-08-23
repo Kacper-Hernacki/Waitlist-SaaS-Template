@@ -61,7 +61,8 @@ Your n8n webhook should receive:
 ```json
 {
   "email": "user@example.com",
-  "product": "aiResearcher"
+  "product": "aiResearcher",
+  "isAgreedToReceiveMails": true
 }
 ```
 

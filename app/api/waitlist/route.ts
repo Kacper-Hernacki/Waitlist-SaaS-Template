@@ -159,7 +159,8 @@ export async function POST(request: NextRequest) {
     // Prepare n8n webhook request
     const webhookData: N8nWebhookRequest = {
       email: sanitizedEmail,
-      product: 'aiResearcher' // CUSTOMIZE: Change this to your product name
+      product: 'aiResearcher', // CUSTOMIZE: Change this to your product name
+      isAgreedToReceiveMails: agreeToEmails // User consent from the checkbox
     };
 
     // Call n8n webhook
