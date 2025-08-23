@@ -7,6 +7,7 @@ export interface WaitlistFormData {
 // Types for n8n webhook integration
 export interface N8nWebhookRequest {
   email: string;
+  product: string; // Product name - customize this for your product
 }
 
 export interface N8nWebhookResponse {

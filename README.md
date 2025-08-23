@@ -61,10 +61,7 @@ Your n8n webhook should receive:
 ```json
 {
   "email": "user@example.com",
-  "timestamp": "2024-01-15T10:30:45.123Z",
-  "userAgent": "Mozilla/5.0...",
-  "ipAddress": "192.168.1.1",
-  "source": "waitlist_homepage"
+  "product": "aiResearcher"
 }
 ```
 
@@ -110,7 +107,8 @@ Update the following components with your branding:
 1. **Logo**: Replace placeholder in `app/page.tsx` and `app/layout.tsx`
 2. **Company Name**: Search and replace "YourLogo" throughout the codebase
 3. **Domain**: Update `https://yourdomain.com` in `app/layout.tsx`
-4. **Colors**: Modify Tailwind classes for your brand colors
+4. **Product Name**: Change `'aiResearcher'` in `app/api/waitlist/route.ts` to your product name
+5. **Colors**: Modify Tailwind classes for your brand colors
 
 ### Content
 

@@ -158,7 +158,8 @@ export async function POST(request: NextRequest) {
 
     // Prepare n8n webhook request
     const webhookData: N8nWebhookRequest = {
-      email: sanitizedEmail
+      email: sanitizedEmail,
+      product: 'aiResearcher' // CUSTOMIZE: Change this to your product name
     };
 
     // Call n8n webhook
